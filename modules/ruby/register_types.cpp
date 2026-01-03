@@ -38,6 +38,7 @@
 
 // Forward declaration - defined in mruby_print.cpp
 void mrb_init_godot_print(mrb_state *mrb);
+extern "C" void mrb_show_version(mrb_state *mrb);
 
 static mrb_state *mrb = nullptr;
 
@@ -49,11 +50,10 @@ void initialize_ruby_module(ModuleInitializationLevel p_level) {
 	// Initialize mruby runtime
 	mrb = mrb_open();
 	if (mrb) {
-		print_line("mruby initialized successfully!");
-
 		// Register custom print functions that redirect to Godot's printing system
 		// This hooks puts, print, p, and all other output
 		mrb_init_godot_print(mrb);
+		mrb_show_version(mrb);
 
 		// Test the custom puts function
 		const int arena_index = mrb_gc_arena_save(mrb);
