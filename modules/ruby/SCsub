@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from misc.utility.scons_hints import *
+import os
 
 Import("env")
 Import("env_modules")
@@ -8,17 +9,92 @@ env_ruby = env_modules.Clone()
 env_thirdparty = env.Clone()
 env_thirdparty.disable_warnings()
 
-thirdparty_dir = "#thirdparty/mruby/build/minimal/amalgam/"
+# mruby directories
+mruby_dir = "#thirdparty/mruby"
+mruby_src_dir = mruby_dir + "/src"
+mruby_include_dir = mruby_dir + "/include"
+mruby_compiler_dir = mruby_dir + "/mrbgems/mruby-compiler/core"
 
-# Make the mruby.h visible globally for autocomplete in IDEs
-env.Prepend(CPPPATH=[thirdparty_dir])
+# Make mruby headers visible globally for autocomplete in IDEs
+env.Prepend(CPPPATH=[mruby_include_dir])
+
+# Configure thirdparty environment for mruby compilation
+env_thirdparty.Prepend(CPPPATH=[mruby_include_dir, mruby_src_dir])
+
+env_thirdparty.Append(CPPDEFINES=[
+    # Disable presym (pre-allocated symbols) feature
+    # This avoids needing to run mruby's presym preprocessor
+    "MRB_NO_PRESYM",
+
+    # Disable stdio to provide custom print implementations
+    # This allows us to redirect all mruby output to Godot's printing system
+    "MRB_NO_STDIO"]
+)
+
+# Platform-specific defines
+if env["platform"] == "windows":
+    env_thirdparty.Append(CPPDEFINES=["MRB_API=__declspec(dllexport)"])
+
+# mruby core VM source files
+mruby_core_sources = [
+    "allocf.c",
+    "array.c",
+    "backtrace.c",
+    "cdump.c",
+    "class.c",
+    "codedump.c",
+    "debug.c",
+    "dump.c",
+    "enum.c",
+    "error.c",
+    "etc.c",
+    "fmt_fp.c",
+    "gc.c",
+    "hash.c",
+    "init.c",
+    "kernel.c",
+    "load.c",
+    "mempool.c",
+    "numeric.c",
+    "numops.c",
+    "object.c",
+    "proc.c",
+    "range.c",
+    "readfloat.c",
+    "readint.c",
+    "readnum.c",
+    "state.c",
+    "string.c",
+    "symbol.c",
+    "variable.c",
+    "version.c",
+    "vm.c",
+]
+
+# mruby compiler sources (required to evaluate Ruby code at runtime)
+mruby_compiler_sources = [
+    "codegen.c",
+    "y.tab.c",
+]
+
+# Compile mruby core VM
+thirdparty_obj = []
+for src in mruby_core_sources:
+    env_thirdparty.add_source_files(thirdparty_obj, mruby_src_dir + "/" + src)
+
+# Compile mruby compiler
+for src in mruby_compiler_sources:
+    env_thirdparty.add_source_files(thirdparty_obj, mruby_compiler_dir + "/" + src)
+
+# Compile mruby stubs (mrb_init_mrbgems and mrb_init_mrblib)
+env_thirdparty.add_source_files(thirdparty_obj, "mruby_stubs.c")
+env_thirdparty.add_source_files(thirdparty_obj, "mruby_print_hook.c")
+
+# Add thirdparty objects to module sources
+env.modules_sources += thirdparty_obj
 
 # Godot source files
-env_ruby.Prepend(CPPPATH=thirdparty_dir)
+env_ruby.Prepend(CPPPATH=[mruby_include_dir])
 module_obj = []
-env_ruby.add_source_files(module_obj, "*.c")
+env_ruby.add_source_files(module_obj, "*.cpp")
 env.modules_sources += module_obj
-
-# External mruby amalgamated source files
-thirdparty_obj = []
-env_thirdparty.add_source_files(thirdparty_obj, [thirdparty_dir + "mruby.c"])

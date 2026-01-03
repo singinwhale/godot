@@ -30,15 +30,46 @@
 
 #include "register_types.h"
 
+#include "core/string/print_string.h"
+#include "core/variant/variant.h"
+
+#include <mruby.h>
+#include <mruby/compile.h>
+
+// Forward declaration - defined in mruby_print.cpp
+void mrb_init_godot_print(mrb_state *mrb);
+
+static mrb_state *mrb = nullptr;
+
 void initialize_ruby_module(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
 
+	// Initialize mruby runtime
+	mrb = mrb_open();
+	if (mrb) {
+		print_line("mruby initialized successfully!");
+
+		// Register custom print functions that redirect to Godot's printing system
+		// This hooks puts, print, p, and all other output
+		mrb_init_godot_print(mrb);
+
+		// Test the custom puts function
+		const int arena_index = mrb_gc_arena_save(mrb);
+		mrb_load_string(mrb, "puts 'Hello from mruby!'\np 'Hello 2'");
+		mrb_gc_arena_restore(mrb, arena_index);
+	}
 }
 
 void uninitialize_ruby_module(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
+	}
+
+	// Clean up mruby runtime
+	if (mrb) {
+		mrb_close(mrb);
+		mrb = nullptr;
 	}
 }
