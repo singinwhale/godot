@@ -1,0 +1,24 @@
+#!/usr/bin/env python
+from misc.utility.scons_hints import *
+
+Import("env")
+Import("env_modules")
+
+env_ruby = env_modules.Clone()
+env_thirdparty = env.Clone()
+env_thirdparty.disable_warnings()
+
+thirdparty_dir = "#thirdparty/mruby/build/minimal/amalgam/"
+
+# Make the mruby.h visible globally for autocomplete in IDEs
+env.Prepend(CPPPATH=[thirdparty_dir])
+
+# Godot source files
+env_ruby.Prepend(CPPPATH=thirdparty_dir)
+module_obj = []
+env_ruby.add_source_files(module_obj, "*.c")
+env.modules_sources += module_obj
+
+# External mruby amalgamated source files
+thirdparty_obj = []
+env_thirdparty.add_source_files(thirdparty_obj, [thirdparty_dir + "mruby.c"])
