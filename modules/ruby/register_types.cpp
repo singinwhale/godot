@@ -70,6 +70,12 @@ void register_ruby_types() {
 	GDREGISTER_CLASS(ResourceFormatLoaderRuby);
 	GDREGISTER_CLASS(RubyFile);
 
+	// Story system classes
+	GDREGISTER_CLASS(StoryCharacter);
+	GDREGISTER_CLASS(StoryVoiceLine);
+	GDREGISTER_CLASS(StoryOption);
+	GDREGISTER_CLASS(StoryChoice);
+
 	ruby_loader.instantiate();
 	ResourceLoader::add_resource_format_loader(ruby_loader);
 

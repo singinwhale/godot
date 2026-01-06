@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from misc.utility.scons_hints import *
+
 import os
 
 Import("env")
@@ -12,10 +13,10 @@ env_thirdparty.disable_warnings()
 mruby_dir = "#thirdparty/mruby"
 mruby_src_dir = mruby_dir + "/src"
 mruby_include_dir = mruby_dir + "/include"
-mruby_compiler_dir = mruby_dir + "/mrbgems/mruby-compiler/core"
+mruby_gems_dir = mruby_dir + "/mrbgems"
 
 # module
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 env_ruby = env_modules.Clone()
 
 env_ruby.Prepend(CPPPATH=[mruby_include_dir])
@@ -32,7 +33,7 @@ for src in ruby_module_src:
 env.modules_sources += module_obj
 
 # mruby
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Make mruby headers visible globally for autocomplete in IDEs
 env.Prepend(CPPPATH=[mruby_include_dir])
 
@@ -40,13 +41,12 @@ env.Prepend(CPPPATH=[mruby_include_dir])
 env_thirdparty.Prepend(CPPPATH=[mruby_include_dir, mruby_src_dir])
 
 cppdefines_mruby = [
-   # Disable presym (pre-allocated symbols) feature
-   # This avoids needing to run mruby's presym preprocessor
-   "MRB_NO_PRESYM",
-
-   # Disable stdio to provide custom print implementations
-   # This allows us to redirect all mruby output to Godot's printing system
-   "MRB_NO_STDIO"
+    # Disable presym (pre-allocated symbols) feature
+    # This avoids needing to run mruby's presym preprocessor
+    "MRB_NO_PRESYM",
+    # Disable stdio to provide custom print implementations
+    # This allows us to redirect all mruby output to Godot's printing system
+    "MRB_NO_STDIO",
 ]
 
 env_thirdparty.Append(CPPDEFINES=cppdefines_mruby)
@@ -96,8 +96,12 @@ mruby_core_sources = [
 
 # mruby compiler sources (required to evaluate Ruby code at runtime)
 mruby_compiler_sources = [
-    "codegen.c",
-    "y.tab.c",
+    "mruby-compiler/core/codegen.c",
+    "mruby-compiler/core/y.tab.c",
+    "mruby-fiber/src/fiber.c",
+    "mruby-binding/src/binding.c",
+    "mruby-eval/src/eval.c",
+    "mruby-catch/src/catch.c",
 ]
 
 # Compile mruby core VM
@@ -107,13 +111,10 @@ for src in mruby_core_sources:
 
 # Compile mruby compiler
 for src in mruby_compiler_sources:
-    env_thirdparty.add_source_files(thirdparty_obj, mruby_compiler_dir + "/" + src)
+    env_thirdparty.add_source_files(thirdparty_obj, mruby_gems_dir + "/" + src)
 
 # Add godot support extensions
-thirdparty_godot_support_exts = [
-    "mruby_stubs.c",
-    "mruby_print_hook.c"
-]
+thirdparty_godot_support_exts = ["mruby_stubs.c", "mruby_print_hook.c"]
 for src in thirdparty_godot_support_exts:
     env_thirdparty.add_source_files(thirdparty_obj, f"mruby_ext/{src}")
 
