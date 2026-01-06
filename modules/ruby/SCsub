@@ -5,7 +5,6 @@ import os
 Import("env")
 Import("env_modules")
 
-env_ruby = env_modules.Clone()
 env_thirdparty = env.Clone()
 env_thirdparty.disable_warnings()
 
@@ -15,21 +14,44 @@ mruby_src_dir = mruby_dir + "/src"
 mruby_include_dir = mruby_dir + "/include"
 mruby_compiler_dir = mruby_dir + "/mrbgems/mruby-compiler/core"
 
+# module
+#----------------------------------------------------------------------
+env_ruby = env_modules.Clone()
+
+env_ruby.Prepend(CPPPATH=[mruby_include_dir])
+module_obj = []
+
+ruby_module_src = [
+    "*.cpp",
+    "context/*.cpp",
+    "resource/*.cpp",
+]
+for src in ruby_module_src:
+    env_ruby.add_source_files(module_obj, src)
+
+env.modules_sources += module_obj
+
+# mruby
+#----------------------------------------------------------------------
 # Make mruby headers visible globally for autocomplete in IDEs
 env.Prepend(CPPPATH=[mruby_include_dir])
 
 # Configure thirdparty environment for mruby compilation
 env_thirdparty.Prepend(CPPPATH=[mruby_include_dir, mruby_src_dir])
 
-env_thirdparty.Append(CPPDEFINES=[
-    # Disable presym (pre-allocated symbols) feature
-    # This avoids needing to run mruby's presym preprocessor
-    "MRB_NO_PRESYM",
+cppdefines_mruby = [
+   # Disable presym (pre-allocated symbols) feature
+   # This avoids needing to run mruby's presym preprocessor
+   "MRB_NO_PRESYM",
 
-    # Disable stdio to provide custom print implementations
-    # This allows us to redirect all mruby output to Godot's printing system
-    "MRB_NO_STDIO"]
-)
+   # Disable stdio to provide custom print implementations
+   # This allows us to redirect all mruby output to Godot's printing system
+   "MRB_NO_STDIO"
+]
+
+env_thirdparty.Append(CPPDEFINES=cppdefines_mruby)
+# also add defines globally so they are available for IDE linting.
+env.Append(CPPDEFINES=cppdefines_mruby)
 
 # Platform-specific defines
 if env["platform"] == "windows":
@@ -58,6 +80,7 @@ mruby_core_sources = [
     "numeric.c",
     "numops.c",
     "object.c",
+    "print.c",
     "proc.c",
     "range.c",
     "readfloat.c",
@@ -86,15 +109,14 @@ for src in mruby_core_sources:
 for src in mruby_compiler_sources:
     env_thirdparty.add_source_files(thirdparty_obj, mruby_compiler_dir + "/" + src)
 
-# Compile mruby stubs (mrb_init_mrbgems and mrb_init_mrblib)
-env_thirdparty.add_source_files(thirdparty_obj, "mruby_stubs.c")
-env_thirdparty.add_source_files(thirdparty_obj, "mruby_print_hook.c")
+# Add godot support extensions
+thirdparty_godot_support_exts = [
+    "mruby_stubs.c",
+    "mruby_print_hook.c"
+]
+for src in thirdparty_godot_support_exts:
+    env_thirdparty.add_source_files(thirdparty_obj, f"mruby_ext/{src}")
 
 # Add thirdparty objects to module sources
 env.modules_sources += thirdparty_obj
-
-# Godot source files
-env_ruby.Prepend(CPPPATH=[mruby_include_dir])
-module_obj = []
-env_ruby.add_source_files(module_obj, "*.cpp")
-env.modules_sources += module_obj
+env.Depends(module_obj, thirdparty_obj)

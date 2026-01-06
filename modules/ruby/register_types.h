@@ -34,3 +34,6 @@
 
 void initialize_ruby_module(ModuleInitializationLevel p_level);
 void uninitialize_ruby_module(ModuleInitializationLevel p_level);
+
+void register_ruby_types();
+void unregister_ruby_types();
