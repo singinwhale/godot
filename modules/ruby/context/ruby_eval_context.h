@@ -99,6 +99,8 @@ public:
 private:
 	void _on_say(Ref<StoryVoiceLine> p_voiceline);
 	void _on_choice(Ref<StoryChoice> p_choice);
+	void _on_show_character(Ref<StoryCharacter> p_character);
+	void _on_show_scene(StringName p_scene_name);
 
 	mrb_state *mruby_state;
 	mrb_value current_fiber;

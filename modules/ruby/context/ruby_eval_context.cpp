@@ -328,6 +328,8 @@ void RubyEvalContext::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("choose", "option_id"), &RubyEvalContext::choose);
 	ADD_SIGNAL(MethodInfo("on_say", PropertyInfo(Variant::OBJECT, "character", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT, "StoryVoiceline")));
 	ADD_SIGNAL(MethodInfo("on_choice", PropertyInfo(Variant::OBJECT, "choice", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT, "StoryChoice")));
+	ADD_SIGNAL(MethodInfo("on_show_character", PropertyInfo(Variant::OBJECT, "character", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT, "StoryCharacter")));
+	ADD_SIGNAL(MethodInfo("on_show_scene", PropertyInfo(Variant::STRING_NAME, "scene")));
 }
 
 extern "C" {
@@ -421,7 +423,6 @@ void RubyEvalContext::handle_fiber_result(mrb_value result, mrb_value fiber) {
 			int results_len = RARRAY_LEN(result);
 			for (int i = 0; i < results_len; i++) {
 			}
-			emit_signal("on_say");
 			break;
 		} else if (mrb_object_p(result)) {
 			CharString classname = mrb_obj_classname(mruby_state, result);
@@ -436,6 +437,17 @@ void RubyEvalContext::handle_fiber_result(mrb_value result, mrb_value fiber) {
 				voice_line.instantiate();
 				voice_line->init_from_mrb(mruby_state, result);
 				_on_say(voice_line);
+				break;
+			} else if (classname == "Scene") {
+				mrb_value id_val = mrb_iv_get(mruby_state, result, mrb_intern_lit(mruby_state, "@name"));
+				StringName name = ruby_to_string(mruby_state, id_val);
+				_on_show_scene(name);
+				break;
+			} else if (classname == "Character") {
+				Ref<StoryCharacter> character;
+				character.instantiate();
+				character->init_from_mrb(mruby_state, result);
+				_on_show_character(character);
 				break;
 			} else {
 				print_error(vformat("unrecognized classname from ruby: %s", classname.ptr()));
@@ -523,4 +535,14 @@ void RubyEvalContext::_on_say(Ref<StoryVoiceLine> p_voiceline) {
 
 void RubyEvalContext::_on_choice(Ref<StoryChoice> p_choice) {
 	emit_signal("on_choice", p_choice);
+}
+
+
+void RubyEvalContext::_on_show_character(Ref<StoryCharacter> p_character) {
+	emit_signal("on_show_character", p_character);
+}
+
+
+void RubyEvalContext::_on_show_scene(StringName p_scene_name) {
+	emit_signal("on_show_scene", p_scene_name);
 }
