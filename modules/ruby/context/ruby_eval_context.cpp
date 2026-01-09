@@ -25,6 +25,9 @@ String ruby_to_string(mrb_state *p_mrb, mrb_value p_str) {
 }
 
 void ensure_absolute_ruby_file(String &path) {
+	if (path.begins_with("uid://"))
+		return;
+
 	if (!path.begins_with("res://")) {
 		path = "res://" + path;
 	}
@@ -132,28 +135,28 @@ void StoryCharacter::set_emotion(const StringName &p_emotion) {
 	this->emotion = p_emotion;
 }
 
-StringName StoryCharacter::get_name() const {
-	return name;
+StringName StoryCharacter::get_id() const {
+	return id;
 }
 
-void StoryCharacter::set_name(const StringName &p_name) {
-	this->name = p_name;
+void StoryCharacter::set_id(const StringName &p_id) {
+	this->id = p_id;
 }
 
 void StoryCharacter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_emotion"), &StoryCharacter::get_emotion);
 	ClassDB::bind_method(D_METHOD("set_emotion", "emotion"), &StoryCharacter::set_emotion);
-	ClassDB::bind_method(D_METHOD("get_name"), &StoryCharacter::get_name);
-	ClassDB::bind_method(D_METHOD("set_name", "name"), &StoryCharacter::set_name);
+	ClassDB::bind_method(D_METHOD("get_id"), &StoryCharacter::get_id);
+	ClassDB::bind_method(D_METHOD("set_id", "name"), &StoryCharacter::set_id);
 
 	ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "emotion"), "set_emotion", "get_emotion");
-	ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "name"), "set_name", "get_name");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "id"), "set_id", "get_id");
 }
 
 void StoryCharacter::init_from_mrb(mrb_state *mrb, mrb_value self) {
 	// Get @id instance variable
 	mrb_value id_val = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@id"));
-	this->name = ruby_to_string(mrb, id_val);
+	this->id = ruby_to_string(mrb, id_val);
 
 	// Get @emotion instance variable (it's a symbol)
 	mrb_value emotion_val = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@emotion"));
@@ -380,6 +383,9 @@ void RubyEvalContext::eval_file(const String &p_path) {
 		compile_from_disk("res://mruby/runtime.rb");
 
 		mrb_value fiber = compile_to_fibre(mruby_state, p_path);
+		if (mrb_nil_p(fiber)) {
+			return;
+		}
 
 		current_fiber = fiber;
 		mrb_value result = mrb_fiber_resume(mruby_state, fiber, 0, nullptr);

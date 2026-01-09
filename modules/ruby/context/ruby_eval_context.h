@@ -19,12 +19,12 @@ public:
 
 	StringName get_emotion() const;
 	void set_emotion(const StringName &p_emotion);
-	StringName get_name() const;
-	void set_name(const StringName &p_name);
+	StringName get_id() const;
+	void set_id(const StringName &p_id);
 
 private:
 	StringName emotion;
-	StringName name;
+	StringName id;
 };
 
 class StoryVoiceLine : public RefCounted {
